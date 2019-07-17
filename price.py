@@ -46,9 +46,9 @@ class Price(GraphenePrice):
 
         This allows instanciations like:
 
-        * ``Price("0.315 USD/META")``
-        * ``Price(0.315, base="USD", quote="META")``
-        * ``Price(0.315, base=Asset("USD"), quote=Asset("META"))``
+        * ``Price("0.315 USD/BTS")``
+        * ``Price(0.315, base="USD", quote="BTS")``
+        * ``Price(0.315, base=Asset("USD"), quote=Asset("BTS"))``
         * ``Price({"base": {"amount": 1, "asset_id": "1.3.0"}, "quote": {"amount": 10, "asset_id": "1.3.106"}})``
         * ``Price({"receives": {"amount": 1, "asset_id": "1.3.0"}, "pays": {"amount": 10, "asset_id": "1.3.106"}}, base_asset=Asset("1.3.0"))``
         * ``Price(quote="10 GOLD", base="1 USD")``
@@ -62,8 +62,8 @@ class Price(GraphenePrice):
         .. code-block:: python
 
             >>> from bitshares.price import Price
-            >>> Price("0.3314 USD/META") * 2
-            0.662600000 USD/META
+            >>> Price("0.3314 USD/BTS") * 2
+            0.662600000 USD/BTS
 
     """
 
@@ -143,11 +143,10 @@ class Order(Price):
             )
         else:
             # Try load Order as Price
-            Price.__init__(*args, **kwargs)
+            Price.__init__(self, *args, **kwargs)
 
         if "for_sale" in self:
             self["for_sale"] = Amount(
-                self,
                 {"amount": self["for_sale"], "asset_id": self["base"]["asset"]["id"]},
                 blockchain_instance=self.blockchain,
             )
@@ -238,7 +237,11 @@ class FilledOrder(Price):
         elif isinstance(order, dict):
             # filled orders from account history
             if "op" in order:
-                order = order["op"][1]
+                if isinstance(order["op"], (list, set)):
+                    order = order["op"][1]
+                elif isinstance(order["op"], dict):
+                    order = order["op"]
+
             base_asset = kwargs.get("base_asset", order["receives"]["asset_id"])
             Price.__init__(self, order, base_asset=base_asset)
 

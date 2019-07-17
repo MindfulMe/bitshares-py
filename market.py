@@ -34,7 +34,7 @@ class Market(dict):
         * ``base-quote`` separated with ``-``
 
         .. note:: Throughout this library, the ``quote`` symbol will be
-                  presented first (e.g. ``USD:META`` with ``USD`` being the
+                  presented first (e.g. ``USD:BTS`` with ``USD`` being the
                   quote), while the ``base`` only refers to a secondary asset
                   for a trade. This means, if you call
                   :func:`bitshares.market.Market.sell` or
@@ -60,7 +60,7 @@ class Market(dict):
             raise ValueError("Unknown Market Format: %s" % str(args))
 
     def get_string(self, separator=":"):
-        """ Return a formated string that identifies the market, e.g. ``USD:META``
+        """ Return a formated string that identifies the market, e.g. ``USD:BTS``
 
             :param str separator: The separator of the assets (defaults to ``:``)
         """
@@ -94,7 +94,7 @@ class Market(dict):
             * ``quoteVolume``: Volume of the quote asset
             * ``percentChange``: 24h change percentage (in %)
             * ``settlement_price``: Settlement Price for borrow/settlement
-            * ``core_exchange_rate``: Core exchange rate for payment of fee in non-META asset
+            * ``core_exchange_rate``: Core exchange rate for payment of fee in non-BTS asset
             * ``price24h``: the price 24h ago
 
             Sample Output:
@@ -149,30 +149,34 @@ class Market(dict):
 
         ticker = self.blockchain.rpc.get_ticker(self["base"]["id"], self["quote"]["id"])
         data["baseVolume"] = Amount(
-            ticker["base_volume"], self["base"], blockchain_instance=self.blockchain
+            ticker["base_volume"] or 0.0,
+            self["base"],
+            blockchain_instance=self.blockchain,
         )
         data["quoteVolume"] = Amount(
-            ticker["quote_volume"], self["quote"], blockchain_instance=self.blockchain
+            ticker["quote_volume"] or 0.0,
+            self["quote"],
+            blockchain_instance=self.blockchain,
         )
         data["lowestAsk"] = Price(
-            ticker["lowest_ask"],
+            ticker["lowest_ask"] or 0.0,
             base=self["base"],
             quote=self["quote"],
             blockchain_instance=self.blockchain,
         )
         data["highestBid"] = Price(
-            ticker["highest_bid"],
+            ticker["highest_bid"] or 0.0,
             base=self["base"],
             quote=self["quote"],
             blockchain_instance=self.blockchain,
         )
         data["latest"] = Price(
-            ticker["latest"],
+            ticker["latest"] or 0.0,
             quote=self["quote"],
             base=self["base"],
             blockchain_instance=self.blockchain,
         )
-        data["percentChange"] = float(ticker["percent_change"])
+        data["percentChange"] = float(ticker.get("percent_change", 0.0) or 0.0)
 
         return data
 
@@ -184,7 +188,7 @@ class Market(dict):
             .. code-block:: js
 
                 {
-                    "META": 361666.63617,
+                    "BTS": 361666.63617,
                     "USD": 1087.0
                 }
 
@@ -213,16 +217,16 @@ class Market(dict):
 
             .. code-block:: js
 
-                {'bids': [0.003679 USD/META (1.9103 USD|519.29602 META),
-                0.003676 USD/META (299.9997 USD|81606.16394 META),
-                0.003665 USD/META (288.4618 USD|78706.21881 META),
-                0.003665 USD/META (3.5285 USD|962.74409 META),
-                0.003665 USD/META (72.5474 USD|19794.41299 META)],
-                'asks': [0.003738 USD/META (36.4715 USD|9756.17339 META),
-                0.003738 USD/META (18.6915 USD|5000.00000 META),
-                0.003742 USD/META (182.6881 USD|48820.22081 META),
-                0.003772 USD/META (4.5200 USD|1198.14798 META),
-                0.003799 USD/META (148.4975 USD|39086.59741 META)]}
+                {'bids': [0.003679 USD/BTS (1.9103 USD|519.29602 BTS),
+                0.003676 USD/BTS (299.9997 USD|81606.16394 BTS),
+                0.003665 USD/BTS (288.4618 USD|78706.21881 BTS),
+                0.003665 USD/BTS (3.5285 USD|962.74409 BTS),
+                0.003665 USD/BTS (72.5474 USD|19794.41299 BTS)],
+                'asks': [0.003738 USD/BTS (36.4715 USD|9756.17339 BTS),
+                0.003738 USD/BTS (18.6915 USD|5000.00000 BTS),
+                0.003742 USD/BTS (182.6881 USD|48820.22081 BTS),
+                0.003772 USD/BTS (4.5200 USD|1198.14798 BTS),
+                0.003799 USD/BTS (148.4975 USD|39086.59741 BTS)]}
 
 
             .. note:: Each bid is an instance of
@@ -421,16 +425,16 @@ class Market(dict):
             :param string returnOrderId: If set to "head" or "irreversible" the call will wait for the tx to appear in
                                         the head/irreversible block and add the key "orderid" to the tx output
 
-            Prices/Rates are denoted in 'base', i.e. the USD_META market
-            is priced in META per USD.
+            Prices/Rates are denoted in 'base', i.e. the USD_BTS market
+            is priced in BTS per USD.
 
-            **Example:** in the USD_META market, a price of 300 means
-            a USD is worth 300 META
+            **Example:** in the USD_BTS market, a price of 300 means
+            a USD is worth 300 BTS
 
             .. note::
 
                 All prices returned are in the **reversed** orientation as the
-                market. I.e. in the BTC/META market, prices are META per BTC.
+                market. I.e. in the BTC/BTS market, prices are BTS per BTC.
                 That way you can multiply prices with `1.05` to get a +5%.
 
             .. warning::
@@ -441,8 +445,8 @@ class Market(dict):
                 buy asset than you placed the order
                 for. Example:
 
-                    * You place and order to buy 10 USD for 100 META/USD
-                    * This means that you actually place a sell order for 1000 META in order to obtain **at least** 10 USD
+                    * You place and order to buy 10 USD for 100 BTS/USD
+                    * This means that you actually place a sell order for 1000 BTS in order to obtain **at least** 10 USD
                     * If an order on the market exists that sells USD for cheaper, you will end up with more than 10 USD
         """
         if not expiration:
@@ -475,12 +479,18 @@ class Market(dict):
                 "seller": account["id"],
                 "amount_to_sell": {
                     "amount": int(
-                        float(amount) * float(price) * 10 ** self["base"]["precision"]
+                        round(
+                            float(amount)
+                            * float(price)
+                            * 10 ** self["base"]["precision"]
+                        )
                     ),
                     "asset_id": self["base"]["id"],
                 },
                 "min_to_receive": {
-                    "amount": int(float(amount) * 10 ** self["quote"]["precision"]),
+                    "amount": int(
+                        round(float(amount) * 10 ** self["quote"]["precision"])
+                    ),
                     "asset_id": self["quote"]["id"],
                 },
                 "expiration": formatTimeFromNow(expiration),
@@ -495,7 +505,7 @@ class Market(dict):
 
         tx = self.blockchain.finalizeOp(order, account["name"], "active", **kwargs)
 
-        if returnOrderId:
+        if returnOrderId and tx.get("operation_results"):
             tx["orderid"] = tx["operation_results"][0][1]
             self.blockchain.blocking = prevblocking
 
@@ -521,16 +531,16 @@ class Market(dict):
             :param string returnOrderId: If set to "head" or "irreversible" the call will wait for the tx to appear in
                                         the head/irreversible block and add the key "orderid" to the tx output
 
-            Prices/Rates are denoted in 'base', i.e. the USD_META market
-            is priced in META per USD.
+            Prices/Rates are denoted in 'base', i.e. the USD_BTS market
+            is priced in BTS per USD.
 
-            **Example:** in the USD_META market, a price of 300 means
-            a USD is worth 300 META
+            **Example:** in the USD_BTS market, a price of 300 means
+            a USD is worth 300 BTS
 
             .. note::
 
                 All prices returned are in the **reversed** orientation as the
-                market. I.e. in the BTC/META market, prices are META per BTC.
+                market. I.e. in the BTC/BTS market, prices are BTS per BTC.
                 That way you can multiply prices with `1.05` to get a +5%.
         """
         if not expiration:
@@ -559,12 +569,18 @@ class Market(dict):
                 "fee": {"amount": 0, "asset_id": "1.3.0"},
                 "seller": account["id"],
                 "amount_to_sell": {
-                    "amount": int(float(amount) * 10 ** self["quote"]["precision"]),
+                    "amount": int(
+                        round(float(amount) * 10 ** self["quote"]["precision"])
+                    ),
                     "asset_id": self["quote"]["id"],
                 },
                 "min_to_receive": {
                     "amount": int(
-                        float(amount) * float(price) * 10 ** self["base"]["precision"]
+                        round(
+                            float(amount)
+                            * float(price)
+                            * 10 ** self["base"]["precision"]
+                        )
                     ),
                     "asset_id": self["base"]["id"],
                 },

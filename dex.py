@@ -71,7 +71,7 @@ class Dex(BlockchainInstance):
             .. code-block: js
 
                 {'USD': {'collateral': '865893.75000',
-                         'collateral_asset': 'META',
+                         'collateral_asset': 'BTS',
                          'debt': 120.00000}
 
         """
